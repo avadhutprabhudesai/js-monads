@@ -1,45 +1,96 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-import { Identity, Maybe } from 'monet';
+import { Maybe } from 'monet';
 import {
-  compose,
-  concat,
-  flip,
-  identity,
+  add,
+  allPass,
+  anyPass,
+  filter,
   map,
-  path,
+  pathEq,
   prop,
-  toLower,
-  toUpper,
+  propEq,
+  reduce,
 } from 'ramda';
-import { languageOfCountry, users } from '../mock-data';
+import { generateUsers } from '../mock-data';
 
 export const MayBeMonad = () => {
   console.log('\n\n%c****Composition****', 'font-size: 20px;color: green');
 
   /**
    * Example 1
-   * Given a list of users, perform following operations on each user,
-   * 1. Extract address
-   * 2. Extract city
-   * 3. Lowercase
-   * 4. Find the language of the country. Default to English.
+   * Using Maybe monad to access nested property on the object
    */
-  const maybeFromNullable = (transform) => (arg) =>
-    Maybe.fromEmpty(transform(arg));
+  const user1 = {
+    name: 'John',
+    address: {
+      geo: {
+        lat: '44.34',
+        long: '32.02',
+      },
+    },
+  };
+  const user2 = {
+    name: 'John',
+    address: {},
+  };
+  const user3 = {
+    name: 'John',
+    address: {
+      geo: {},
+    },
+  };
+  const user4 = {
+    name: 'John',
+  };
 
-  const getLang = maybeFromNullable(flip(prop)(languageOfCountry));
-
-  const getCountry = maybeFromNullable(path(['address', 'country']));
-
-  const toLowerCase = maybeFromNullable(toLower);
-
-  const findLanguageOfUser = (user) =>
+  const printLatLong = (user) =>
     Maybe.fromEmpty(user)
-      .flatMap(getCountry)
-      .flatMap(toLowerCase)
-      .flatMap(getLang)
-      .orSome('English');
+      .flatMap((x) => Maybe.fromEmpty(prop('address')(x)))
+      .flatMap((x) => Maybe.fromEmpty(prop('geo')(x)))
+      .orSome('No geo info');
 
-  console.log(map(findLanguageOfUser, users));
+  console.log(printLatLong(user1));
+  console.log(printLatLong(user2));
+  console.log(printLatLong(user3));
+  console.log(printLatLong(user4));
+  /**
+   * Example 2
+   *
+   * Given a list of employees of a company, calculate total salary paid to the employees satisfying following criteria,
+   * 1. Employee is from America
+   * 2. Employee has the designation as Developer/Engineer/Consultant/Officer
+   *
+   * Display 'No records found' if no employee matches the criteria.
+   *
+   *
+   */
+
+  const fromCountry = pathEq(['address', 'country']);
+  const withTitle = propEq('designation');
+
+  // Mock implementation of network request to fetch records of users with specific query params
+  const fetchEmployeesFromDB = (filterCriteria) => {
+    var results = filter(filterCriteria, generateUsers());
+    // This branching is done to mimick the behavior of APIs where empty values are generally represented by null.
+    if (results.length) return results;
+    return null;
+  };
+
+  const employeesFromUSA = allPass([
+    fromCountry('United States of America'),
+    anyPass([
+      withTitle('Developer'),
+      withTitle('Engineer'),
+      withTitle('Consultant'),
+      withTitle('Officer'),
+    ]),
+  ]);
+
+  console.log(
+    Maybe.fromEmpty(fetchEmployeesFromDB(employeesFromUSA))
+      .map(map(prop('salary')))
+      .map(reduce(add, 0))
+      .orSome('No records found')
+  );
 };
