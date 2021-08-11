@@ -1,3 +1,17 @@
+import faker from 'faker';
+
+export const generateUsers = (qty = 200) => {
+  var users = [];
+  for (let i = 0; i < qty; i++) {
+    users.push({
+      ...faker.helpers.createCard(),
+      designation: faker.name.jobType(),
+      salary: faker.finance.amount(),
+    });
+  }
+  return users;
+};
+
 export const users = [
   {
     firstName: 'John',
@@ -12,6 +26,7 @@ export const users = [
     lastName: 'Martini',
     address: {
       country: 'ESP',
+      city: 'Barcelona',
     },
   },
   {
@@ -28,6 +43,7 @@ export const users = [
     lastName: 'Doe',
     address: {
       country: 'SRB',
+      city: 'Belgrade',
     },
   },
   null,
